@@ -65,6 +65,41 @@ class FlickrHelper extends AppHelper
     );
 
     /**
+    * Get Result
+    *
+    * @param int $id Flickr photo ID.
+    * @return mixed Array of results on success, boolean false on failure
+    * @access protected
+    */
+    protected function _getResult($id = null)
+    {
+        $params = array(
+            'method' => 'flickr.photos.getInfo',
+            'api_key' => $this->_apiKey,
+            'photo_id' => $id,
+            'format' => 'php_serial',
+        );
+        $query = http_build_query($params);
+        $url = 'http://api.flickr.com/services/rest/?' . $query;
+        $cacheKey = md5($url);
+        if (!Configure::read('Cache.disable') && Configure::read('Cache.check') && $result = Cache::read($cacheKey)) {
+                return $result;
+        } else {
+            if ($response = file_get_contents($url)) {
+                if ($result = unserialize($response)) {
+                    if (isset($result['stat']) && $result['stat'] == 'ok') {
+                        if (!Configure::read('Cache.disable') && Configure::read('Cache.check')) {
+                            Cache::write($cacheKey, $result);
+                        }
+                        return $result;
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
+    /**
     * Photo
     *
     * @param int $id Flickr photo ID.
@@ -77,46 +112,34 @@ class FlickrHelper extends AppHelper
     public function photo($id = null, $size = null, $options = array())
     {
         if (!$this->_apiKey) {
-            return;
+            return false;
         }
         if (!$id || !is_numeric($id)) {
-            return;
+            return false;
         }
         if (!$size || !in_array($size, $this->_sizes)) {
             $size = '-';
         }
-        $params = array(
-            'method' => 'flickr.photos.getInfo',
-            'api_key' => $this->_apiKey,
-            'photo_id' => $id,
-            'format' => 'php_serial',
-        );
-        $query = http_build_query($params);
-        $url = 'http://api.flickr.com/services/rest/?' . $query;
-        if ($response = file_get_contents($url)) {
-            if ($result = unserialize($response)) {
-                if (isset($result['stat']) && $result['stat'] == 'ok') {
-                    $farm = $result['photo']['farm'];
-                    $originalSecret = $result['photo']['originalsecret'];
-                    $originalformat = $result['photo']['originalformat'];
-                    $secret = $result['photo']['secret'];
-                    $server = $result['photo']['server'];
-                    switch ($size) {
-                        case '-':
-                            $path = "http://farm{$farm}.static.flickr.com/{$server}/{$id}_{$secret}.jpg";
-                            break;
-                        case 'o':
-                            $path = "http://farm{$farm}.static.flickr.com/{$server}/{$id}_{$originalSecret}_o.{$originalformat}";
-                            break;
-                        default:
-                            $path = "http://farm{$farm}.static.flickr.com/{$server}/{$id}_{$secret}_{$size}.jpg";
-                    }
-                    $options = array_merge(array(
-                        'alt' => $result['photo']['title']['_content']
-                    ), $options);
-                    return $this->Html->image($path, $options);
-                }
+        if ($result = $this->_getResult($id)) {
+            $farm = $result['photo']['farm'];
+            $originalSecret = $result['photo']['originalsecret'];
+            $originalformat = $result['photo']['originalformat'];
+            $secret = $result['photo']['secret'];
+            $server = $result['photo']['server'];
+            switch ($size) {
+                case '-':
+                    $path = "http://farm{$farm}.static.flickr.com/{$server}/{$id}_{$secret}.jpg";
+                    break;
+                case 'o':
+                    $path = "http://farm{$farm}.static.flickr.com/{$server}/{$id}_{$originalSecret}_o.{$originalformat}";
+                    break;
+                default:
+                    $path = "http://farm{$farm}.static.flickr.com/{$server}/{$id}_{$secret}_{$size}.jpg";
             }
+            $options = array_merge(array(
+                'alt' => $result['photo']['title']['_content']
+            ), $options);
+            return $this->Html->image($path, $options);
         }
         return;
     }

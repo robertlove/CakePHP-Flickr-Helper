@@ -20,13 +20,12 @@ USAGE
 The following examples demonstrate various uses in your view:
 
     echo $this->Flickr->photo(2973425255);
-	
-	echo $this->Flickr->photo(2973425255, 's');
+
+    echo $this->Flickr->photo(2973425255, 's');
 
     echo $this->Flickr->photo(2973425255, 'm', array('alt' => 'Aidan Love', 'class' => 'photo', 'height' => 200, 'width' => 300));
 
 LICENSE
 -------
 
-The files in this archive are released under the new BSD license. You can find a
-copy of this license in LICENSE.
+The files in this archive are released under the new BSD license. You can find a copy of this license in LICENSE.
