@@ -1,9 +1,11 @@
 Flickr Helper
 
-A CakePHP Helper for displaying Flickr Photos
+A CakePHP Library & Helper for displaying Flickr Photos
 
 INSTALLATION
 ------------
+
+Copy Flickr.php to your app/Vendor directory
 
 Copy FlickrHelper.php to your app/View/Helper directory
 
@@ -24,6 +26,8 @@ The following examples demonstrate various uses in your view:
     echo $this->Flickr->photo(2973425255, 's');
 
     echo $this->Flickr->photo(2973425255, 'm', array('alt' => 'Aidan Love', 'class' => 'photo', 'height' => 200, 'width' => 300));
+
+    echo $this->Flickr->url(2973425255);
 
 LICENSE
 -------

@@ -1,6 +1,6 @@
 <?php
 /**
-* Flickr Helper
+* Flickr Library
 *
 * LICENSE
 *
@@ -8,27 +8,32 @@
 * package in the file LICENSE. It is also available through the world-wide-web
 * at this URL: http://www.opensource.org/licenses/bsd-license
 *
-* @category Helpers
+* @category Vendor
 * @package CakePHP
 * @subpackage PHP
 * @copyright Copyright (c) 2011 Signified (http://signified.com.au)
 * @license http://www.opensource.org/licenses/bsd-license New BSD License
-* @version 1.0
+* @version 1.1
 */
 
-/**
-* FlickrHelper class
-*
-* Flickr Helper class for easy display of Flickr photos
-*
-* @category Helpers
-* @package CakePHP
-* @subpackage PHP
-* @copyright Copyright (c) 2011 Signified (http://signified.com.au)
-* @license http://www.opensource.org/licenses/bsd-license New BSD License
-*/
-class FlickrHelper extends AppHelper
+class Flickr
 {
+    /**
+    * Flickr Response Array
+    *
+    * @var array
+    * @access public
+    */
+    public $response;
+
+    /**
+    * Flickr REST URL
+    *
+    * @var string
+    * @access private
+    */
+    private $_restUrl = 'https://api.flickr.com/services/rest';
+
     /**
     * Flickr API Key
     *
@@ -47,6 +52,7 @@ class FlickrHelper extends AppHelper
     protected $_sizes = array(
         's', // small square 75x75
         't', // thumbnail, 100 on longest side
+        'q', // large sqaure, 150x150
         'm', // small, 240 on longest side
         '-', // medium, 500 on longest side
         'z', // medium 640, 640 on longest side
@@ -54,15 +60,7 @@ class FlickrHelper extends AppHelper
         'o', // original image, either a jpg, gif or png, depending on source format
     );
 
-    /**
-    * Helpers used by FlickrHelper
-    *
-    * @var array
-    * @access public
-    */
-    public $helpers = array(
-        'Html'
-    );
+    public function __construct() {}
 
     /**
     * Get Result
@@ -80,18 +78,18 @@ class FlickrHelper extends AppHelper
             'format' => 'php_serial',
         );
         $query = http_build_query($params);
-        $url = 'http://api.flickr.com/services/rest/?' . $query;
+        $url = $this->_restUrl . '?' . $query;
         $cacheKey = md5($url);
-        if (!Configure::read('Cache.disable') && Configure::read('Cache.check') && $result = Cache::read($cacheKey)) {
-                return $result;
+        if (!Configure::read('Cache.disable') && Configure::read('Cache.check') && ($this->response = Cache::read($cacheKey))) {
+            return $this->response;
         } else {
-            if ($response = file_get_contents($url)) {
-                if ($result = unserialize($response)) {
-                    if (isset($result['stat']) && $result['stat'] == 'ok') {
+            if ($result = file_get_contents($url)) {
+                if($this->response = unserialize($result)) {
+                    if (isset($this->response['stat']) && $this->response['stat'] == 'ok') {
                         if (!Configure::read('Cache.disable') && Configure::read('Cache.check')) {
-                            Cache::write($cacheKey, $result);
+                            Cache::write($cacheKey, $this->response);
                         }
-                        return $result;
+                        return $this->response;
                     }
                 }
             }
@@ -100,16 +98,15 @@ class FlickrHelper extends AppHelper
     }
 
     /**
-    * Photo
+    * Flickr Url
     *
     * @param int $id Flickr photo ID.
     * @param string $size Flickr photo size.
-    * @param array $attributes Array of HTML attributes.
-    * @return string completed img tag
+    * @return string complete static flickr farm url
     * @access public
     * @link http://www.flickr.com/services/api/flickr.photos.getInfo.htm
     */
-    public function photo($id = null, $size = null, $options = array())
+    public function url($id = null, $size = null)
     {
         if (!$this->_apiKey) {
             return false;
@@ -136,11 +133,10 @@ class FlickrHelper extends AppHelper
                 default:
                     $path = "http://farm{$farm}.static.flickr.com/{$server}/{$id}_{$secret}_{$size}.jpg";
             }
-            $options = array_merge(array(
-                'alt' => $result['photo']['title']['_content']
-            ), $options);
-            return $this->Html->image($path, $options);
+            return $path;
         }
         return;
     }
 }
+
+?>
